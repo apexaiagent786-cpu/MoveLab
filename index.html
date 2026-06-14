@@ -134,7 +134,7 @@
 <div class="toast" id="toast"></div>
 
 <script type="module">
-import { FilesetResolver, PoseLandmarker }
+import { FilesetResolver, PoseLandmarker, HandLandmarker }
   from "https://cdn.jsdelivr.net/npm/@mediapipe/tasks-vision@0.10.12";
 
 // ───────────────────────── Config ─────────────────────────
@@ -160,7 +160,7 @@ const LABELS = {
   0:"Head",
   11:"L.Shoulder", 12:"R.Shoulder",
   13:"L.Elbow",    14:"R.Elbow",
-  15:"L.Hand",     16:"R.Hand",
+  15:"L.Wrist",    16:"R.Wrist",
   23:"L.Hip",      24:"R.Hip",
   25:"L.Knee",     26:"R.Knee",
   27:"L.Ankle",    28:"R.Ankle",
@@ -175,6 +175,9 @@ const NORMAL_FLEX = {Knee:135, Hip:120, Elbow:145};
 const SYMM = [["L.Knee","R.Knee"],["L.Hip","R.Hip"],["L.Elbow","R.Elbow"],
               ["L.Shoulder","R.Shoulder"],["L.Ankle","R.Ankle"]];
 const CONNECTIONS = PoseLandmarker.POSE_CONNECTIONS;
+const HAND_CONNECTIONS = HandLandmarker.HAND_CONNECTIONS;
+const HAND_MODEL = "https://storage.googleapis.com/mediapipe-models/hand_landmarker/hand_landmarker/float16/1/hand_landmarker.task";
+const HAND_TIPS = [4,8,12,16,20];
 // Lower gates so partially-occluded joints still show.
 const VIS_REPORT = 0.5, VIS_DRAW = 0.3, STEADY_STD = 1.5, WIN = 12;
 
@@ -230,7 +233,7 @@ const video=document.getElementById("video"),
 const $=id=>document.getElementById(id);
 let landmarker=null, stream=null, facing="environment", mirror=false, delegate="GPU";
 let running=false, lastT=performance.now(), fps=0, lastVideoTime=-1, lastRes=null;
-let showLabels=true;
+let handLandmarker=null, lastHands=null, showLabels=true;
 const filters={}, history={}, rom={};
 for(const n in ANGLE_DEFS){filters[n]=new OneEuro();history[n]=[];rom[n]=[180,0];}
 let recording=false, session=[], sessionStart=0;
@@ -260,6 +263,15 @@ async function loadModel(){
     landmarker=await PoseLandmarker.createFromOptions(vision,opts("CPU"));
     delegate="CPU";
   }
+  // Hand detector (so we can recognise hands + which is left / right)
+  $("loadmsg").textContent="Loading hand model…";
+  try{
+    handLandmarker=await HandLandmarker.createFromOptions(vision,{
+      baseOptions:{modelAssetPath:HAND_MODEL, delegate},
+      runningMode:"VIDEO", numHands:2,
+      minHandDetectionConfidence:.5, minHandPresenceConfidence:.5, minTrackingConfidence:.5
+    });
+  }catch(e){ handLandmarker=null; }
 }
 
 function applyMirror(){ video.style.transform = mirror ? "scaleX(-1)" : "none"; }
@@ -316,6 +328,7 @@ function loop(){
       lastVideoTime=video.currentTime;
       try{ lastRes=landmarker.detectForVideo(video,now); }
       catch(e){ $("diagTxt").textContent="err:"+(e.message||e).slice(0,18); }
+      if(handLandmarker){ try{ lastHands=handLandmarker.detectForVideo(video,now); }catch(e){} }
     }
     fps=fps*0.9 + (1000/Math.max(now-lastT,1))*0.1; lastT=now;
     draw(lastRes,now);
@@ -335,7 +348,8 @@ function draw(res,now){
     const lm=res.landmarks[0];
     const wlm=(res.worldLandmarks&&res.worldLandmarks[0])||lm;
     const nVis=lm.filter(p=>vis(p)>=VIS_DRAW).length;
-    $("diagTxt").textContent=delegate+" · "+nVis+"/33";
+    const nH=(lastHands&&lastHands.landmarks)?lastHands.landmarks.length:0;
+    $("diagTxt").textContent=delegate+" · "+nVis+"/33 · "+nH+"H";
     const [vl,vc]=detectView(lm);
     $("viewTxt").textContent="View: "+vl; $("viewTxt").style.color=vc;
 
@@ -371,8 +385,11 @@ function draw(res,now){
     }
   }else{
     $("viewTxt").textContent="View: —";
-    $("diagTxt").textContent=delegate+" · 0/33";
+    const nH=(lastHands&&lastHands.landmarks)?lastHands.landmarks.length:0;
+    $("diagTxt").textContent=delegate+" · 0/33 · "+nH+"H";
   }
+  // Draw real hands (skeleton + LEFT/RIGHT HAND label + finger count)
+  drawHands(lastHands, have ? res.landmarks[0] : null);
   updatePanel(computed);
   if(recording && have){
     const row={t:(now-sessionStart)/1000};
@@ -381,14 +398,61 @@ function draw(res,now){
   }
 }
 
-function drawLabel(x,y,text){
+function drawLabel(x,y,text,col="#ffffff"){
   ctx.font="bold 12px sans-serif";ctx.textAlign="left";ctx.textBaseline="middle";
   const w=ctx.measureText(text).width;
   let lx=x+9, ly=y-2;
   if(lx+w+8>canvas.width) lx=x-w-17;            // flip side if off right edge
   ly=Math.max(11,Math.min(canvas.height-11,ly));
   ctx.fillStyle="#000b";ctx.fillRect(lx-3,ly-9,w+8,18);
-  ctx.fillStyle="#ffffff";ctx.fillText(text,lx+1,ly);
+  ctx.fillStyle=col;ctx.fillText(text,lx+1,ly);
+}
+
+// Which physical hand? Match the hand's wrist to the nearest pose wrist
+// (pose knows anatomical L/R), so it stays consistent with the body labels.
+function handSide(res,idx,hand,poseLm){
+  if(poseLm){
+    const w=hand[0];
+    const dl=Math.hypot(w.x-poseLm[15].x, w.y-poseLm[15].y);
+    const dr=Math.hypot(w.x-poseLm[16].x, w.y-poseLm[16].y);
+    if(Math.min(dl,dr)<0.3) return dl<dr ? "Left" : "Right";
+  }
+  // fallback: model handedness (assumes mirrored selfie input → swap)
+  const cat=res.handedness && res.handedness[idx] && res.handedness[idx][0]
+            && res.handedness[idx][0].categoryName;
+  if(cat) return cat==="Left" ? "Right" : "Left";
+  return "Hand";
+}
+
+function countFingers(hand,side){
+  let c=0;
+  const tips=[8,12,16,20], pips=[6,10,14,18];
+  for(let k=0;k<4;k++) if(hand[tips[k]].y < hand[pips[k]].y) c++;   // finger up
+  const ext = side==="Right" ? (hand[4].x < hand[3].x) : (hand[4].x > hand[3].x);
+  if(ext) c++;                                                      // thumb
+  return c;
+}
+
+function drawHands(res,poseLm){
+  if(!res || !res.landmarks || res.landmarks.length===0) return;
+  for(let idx=0; idx<res.landmarks.length; idx++){
+    const hand=res.landmarks[idx];
+    const side=handSide(res,idx,hand,poseLm);
+    const col = side==="Right" ? "#dc32c8" : side==="Left" ? "#3296ff" : "#00dcff";
+    ctx.strokeStyle=col; ctx.lineWidth=3; ctx.lineCap="round";
+    for(const c of HAND_CONNECTIONS){
+      const a=px(hand[c.start]), b=px(hand[c.end]);
+      ctx.beginPath();ctx.moveTo(a[0],a[1]);ctx.lineTo(b[0],b[1]);ctx.stroke();
+    }
+    for(let i=0;i<hand.length;i++){
+      const [x,y]=px(hand[i]); const tip=HAND_TIPS.includes(i);
+      ctx.beginPath();ctx.arc(x,y,tip?5:3,0,7);
+      ctx.fillStyle=tip?col:"#ffffff";ctx.fill();
+    }
+    const [wx,wy]=px(hand[0]);
+    const name = side==="Hand" ? "HAND" : side.toUpperCase()+" HAND";
+    drawLabel(wx,wy, name+" · "+countFingers(hand,side)+" fingers", col);
+  }
 }
 
 function drawArc(v,a,c,deg,col){
