@@ -101,6 +101,7 @@
 
 <div id="controls">
   <button id="btnFlip">🔄 Flip</button>
+  <button id="btnLabels" class="primary">🏷 Labels</button>
   <button id="btnCam">📷 Rear</button>
   <button id="btnRec" class="rec">⏺ Record</button>
   <button id="btnReport" disabled>📊 Report</button>
@@ -154,6 +155,17 @@ const ANGLE_DEFS = {
   "R.Ankle":[P.R_KN,P.R_AN,P.R_FT,"#00dcff"],
 };
 const FLEXION = new Set(["L.Knee","R.Knee","L.Hip","R.Hip","L.Elbow","R.Elbow"]);
+// Body-part name shown ON the body next to each major landmark.
+const LABELS = {
+  0:"Head",
+  11:"L.Shoulder", 12:"R.Shoulder",
+  13:"L.Elbow",    14:"R.Elbow",
+  15:"L.Hand",     16:"R.Hand",
+  23:"L.Hip",      24:"R.Hip",
+  25:"L.Knee",     26:"R.Knee",
+  27:"L.Ankle",    28:"R.Ankle",
+  31:"L.Foot",     32:"R.Foot"
+};
 const MUSCLES = {
   "Knee":"Hamstrings / Quadriceps", "Hip":"Iliopsoas / Glutes",
   "Elbow":"Biceps / Triceps", "Shoulder":"Deltoid / Pec",
@@ -218,6 +230,7 @@ const video=document.getElementById("video"),
 const $=id=>document.getElementById(id);
 let landmarker=null, stream=null, facing="environment", mirror=false, delegate="GPU";
 let running=false, lastT=performance.now(), fps=0, lastVideoTime=-1, lastRes=null;
+let showLabels=true;
 const filters={}, history={}, rom={};
 for(const n in ANGLE_DEFS){filters[n]=new OneEuro();history[n]=[];rom[n]=[180,0];}
 let recording=false, session=[], sessionStart=0;
@@ -334,13 +347,14 @@ function draw(res,now){
       const pa=px(a),pb=px(b);
       ctx.beginPath();ctx.moveTo(pa[0],pa[1]);ctx.lineTo(pb[0],pb[1]);ctx.stroke();
     }
-    // joints
+    // joints + body-part names
     for(let i=0;i<lm.length;i++){
       const v=vis(lm[i]); if(v<VIS_DRAW)continue;
       const [x,y]=px(lm[i]);
       ctx.beginPath();ctx.arc(x,y,v>0.7?6:4,0,7);
       ctx.fillStyle=v>0.7?"#39ff14":v>0.5?"#ffa500":"#ff3250";ctx.fill();
       ctx.lineWidth=1.5;ctx.strokeStyle="#0b0a14";ctx.stroke();
+      if(showLabels && LABELS[i] && v>=0.5) drawLabel(x,y,LABELS[i]);
     }
     // angles (world coords)
     for(const name in ANGLE_DEFS){
@@ -365,6 +379,16 @@ function draw(res,now){
     for(const n in ANGLE_DEFS) row[n]= computed[n]? +computed[n].angle.toFixed(2):null;
     session.push(row);
   }
+}
+
+function drawLabel(x,y,text){
+  ctx.font="bold 12px sans-serif";ctx.textAlign="left";ctx.textBaseline="middle";
+  const w=ctx.measureText(text).width;
+  let lx=x+9, ly=y-2;
+  if(lx+w+8>canvas.width) lx=x-w-17;            // flip side if off right edge
+  ly=Math.max(11,Math.min(canvas.height-11,ly));
+  ctx.fillStyle="#000b";ctx.fillRect(lx-3,ly-9,w+8,18);
+  ctx.fillStyle="#ffffff";ctx.fillText(text,lx+1,ly);
 }
 
 function drawArc(v,a,c,deg,col){
@@ -503,6 +527,9 @@ $("btnCam").onclick=async()=>{
   if(running){try{await startCamera();}catch(e){toast("Cam switch failed");}}
 };
 $("btnFlip").onclick=()=>{mirror=!mirror;applyMirror();toast("Mirror "+(mirror?"on":"off"));};
+$("btnLabels").onclick=()=>{showLabels=!showLabels;
+  $("btnLabels").classList.toggle("primary",showLabels);
+  toast("Body-part labels "+(showLabels?"on":"off"));};
 $("btnRec").onclick=()=>setRec(!recording);
 $("btnReport").onclick=openReport;
 $("btnReset").onclick=()=>{for(const n in rom){rom[n]=[180,0];history[n]=[];}
