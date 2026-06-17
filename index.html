@@ -102,6 +102,7 @@
 <div id="controls">
   <button id="btnFlip">🔄 Flip</button>
   <button id="btnLabels" class="primary">🏷 Labels</button>
+  <button id="btnHands" class="primary">✋ Hands</button>
   <button id="btnCam">📷 Rear</button>
   <button id="btnRec" class="rec">⏺ Record</button>
   <button id="btnReport" disabled>📊 Report</button>
@@ -204,6 +205,17 @@ function angle3d(a,b,c){
   const d=(ba[0]*bc[0]+ba[1]*bc[1]+ba[2]*bc[2])/(n1*n2);
   return Math.acos(Math.max(-1,Math.min(1,d)))*180/Math.PI;
 }
+// 2-D image-plane angle (aspect-corrected). In a SIDE view the limb segments
+// lie parallel to the camera, so this projected angle is more accurate than
+// the world-coordinate angle whose depth (z) axis is the least reliable.
+function angle2d(a,b,c,aspect){
+  const ax=a.x*aspect, bx=b.x*aspect, cx=c.x*aspect;
+  const ba=[ax-bx,a.y-b.y], bc=[cx-bx,c.y-b.y];
+  const n1=Math.hypot(ba[0],ba[1]), n2=Math.hypot(bc[0],bc[1]);
+  if(n1<1e-6||n2<1e-6)return null;
+  const d=(ba[0]*bc[0]+ba[1]*bc[1])/(n1*n2);
+  return Math.acos(Math.max(-1,Math.min(1,d)))*180/Math.PI;
+}
 const clinFlex = raw => Math.max(0,180-raw);
 function jointState(name,raw){
   if(!FLEXION.has(name))return [Math.round(raw)+"°","#00dcff"];
@@ -233,7 +245,7 @@ const video=document.getElementById("video"),
 const $=id=>document.getElementById(id);
 let landmarker=null, stream=null, facing="environment", mirror=false, delegate="GPU";
 let running=false, lastT=performance.now(), fps=0, lastVideoTime=-1, lastRes=null;
-let handLandmarker=null, lastHands=null, showLabels=true;
+let handLandmarker=null, lastHands=null, showLabels=true, handsOn=true;
 const filters={}, history={}, rom={};
 for(const n in ANGLE_DEFS){filters[n]=new OneEuro();history[n]=[];rom[n]=[180,0];}
 let recording=false, session=[], sessionStart=0;
@@ -328,7 +340,7 @@ function loop(){
       lastVideoTime=video.currentTime;
       try{ lastRes=landmarker.detectForVideo(video,now); }
       catch(e){ $("diagTxt").textContent="err:"+(e.message||e).slice(0,18); }
-      if(handLandmarker){ try{ lastHands=handLandmarker.detectForVideo(video,now); }catch(e){} }
+      if(handLandmarker && handsOn){ try{ lastHands=handLandmarker.detectForVideo(video,now); }catch(e){} }
     }
     fps=fps*0.9 + (1000/Math.max(now-lastT,1))*0.1; lastT=now;
     draw(lastRes,now);
@@ -352,6 +364,8 @@ function draw(res,now){
     $("diagTxt").textContent=delegate+" · "+nVis+"/33 · "+nH+"H";
     const [vl,vc]=detectView(lm);
     $("viewTxt").textContent="View: "+vl; $("viewTxt").style.color=vc;
+    const aspect=(video.videoWidth/video.videoHeight)||(16/9);
+    const isSide=(vl==="SIDE");
 
     // skeleton
     ctx.lineWidth=4; ctx.lineCap="round"; ctx.strokeStyle="#00dcffdd";
@@ -374,7 +388,11 @@ function draw(res,now){
     for(const name in ANGLE_DEFS){
       const [ia,ib,ic,col]=ANGLE_DEFS[name];
       if(Math.min(vis(lm[ia]),vis(lm[ib]),vis(lm[ic]))<VIS_REPORT)continue;
-      const raw=angle3d(wlm[ia],wlm[ib],wlm[ic]); if(raw===null)continue;
+      // SIDE view → 2-D image angle (more accurate); else → 3-D world angle.
+      let raw = isSide ? angle2d(lm[ia],lm[ib],lm[ic],aspect)
+                       : angle3d(wlm[ia],wlm[ib],wlm[ic]);
+      if(raw===null) raw = angle3d(wlm[ia],wlm[ib],wlm[ic]);
+      if(raw===null) continue;
       const sm=filters[name].filt(raw,now/1000);
       const h=history[name]; h.push(sm); if(h.length>WIN)h.shift();
       const steady=h.length>=4 && std(h)<STEADY_STD;
@@ -594,6 +612,9 @@ $("btnFlip").onclick=()=>{mirror=!mirror;applyMirror();toast("Mirror "+(mirror?"
 $("btnLabels").onclick=()=>{showLabels=!showLabels;
   $("btnLabels").classList.toggle("primary",showLabels);
   toast("Body-part labels "+(showLabels?"on":"off"));};
+$("btnHands").onclick=()=>{handsOn=!handsOn; if(!handsOn)lastHands=null;
+  $("btnHands").classList.toggle("primary",handsOn);
+  toast("Hand tracking "+(handsOn?"on":"off — better performance"));};
 $("btnRec").onclick=()=>setRec(!recording);
 $("btnReport").onclick=openReport;
 $("btnReset").onclick=()=>{for(const n in rom){rom[n]=[180,0];history[n]=[];}
