@@ -183,7 +183,7 @@ const HAND_TIPS = [4,8,12,16,20];
 const VIS_REPORT = 0.5, VIS_DRAW = 0.3, STEADY_STD = 1.5, WIN = 12;
 // Displayed value only moves when the angle changes more than this (degrees),
 // so a held limb shows a constant number instead of flickering on noise.
-const DEADBAND = 1.5;
+const DEADBAND = 2.0;
 
 // ──────────────────── One-Euro filter ─────────────────────
 class OneEuro{
@@ -249,6 +249,9 @@ const $=id=>document.getElementById(id);
 let landmarker=null, stream=null, facing="environment", mirror=false, delegate="GPU";
 let running=false, lastT=performance.now(), fps=0, lastVideoTime=-1, lastRes=null;
 let handLandmarker=null, lastHands=null, showLabels=true, handsOn=true;
+// Throttled HUD text (so fps / counts don't flicker every frame when still)
+let lastStat=0, diagStr="—", viewStr="View: —", viewCol="#9aa0c0";
+const HUD_MS=1000;
 const filters={}, history={}, rom={}, hold={};
 for(const n in ANGLE_DEFS){filters[n]=new OneEuro();history[n]=[];rom[n]=[180,0];}
 let recording=false, session=[], sessionStart=0;
@@ -356,7 +359,6 @@ function draw(res,now){
   const have = res && res.landmarks && res.landmarks.length>0;
   $("poseDot").style.background = have ? "var(--green)":"var(--red)";
   $("poseTxt").textContent = have ? "Pose OK":"No pose";
-  $("fpsTxt").textContent = fps.toFixed(0)+" fps";
 
   const computed={};
   if(have){
@@ -364,9 +366,9 @@ function draw(res,now){
     const wlm=(res.worldLandmarks&&res.worldLandmarks[0])||lm;
     const nVis=lm.filter(p=>vis(p)>=VIS_DRAW).length;
     const nH=(lastHands&&lastHands.landmarks)?lastHands.landmarks.length:0;
-    $("diagTxt").textContent=delegate+" · "+nVis+"/33 · "+nH+"H";
+    diagStr=delegate+" · "+nVis+"/33 · "+nH+"H";
     const [vl,vc]=detectView(lm);
-    $("viewTxt").textContent="View: "+vl; $("viewTxt").style.color=vc;
+    viewStr="View: "+vl; viewCol=vc;
     const aspect=(video.videoWidth/video.videoHeight)||(16/9);
     const isSide=(vl==="SIDE");
 
@@ -409,13 +411,20 @@ function draw(res,now){
       drawArc(px(lm[ib]),px(lm[ia]),px(lm[ic]),hv,col);
     }
   }else{
-    $("viewTxt").textContent="View: —";
     const nH=(lastHands&&lastHands.landmarks)?lastHands.landmarks.length:0;
-    $("diagTxt").textContent=delegate+" · 0/33 · "+nH+"H";
+    viewStr="View: —"; viewCol="#9aa0c0";
+    diagStr=delegate+" · 0/33 · "+nH+"H";
   }
   // Draw real hands (skeleton + LEFT/RIGHT HAND label + finger count)
   drawHands(lastHands, have ? res.landmarks[0] : null);
   updatePanel(computed);
+  // Flush flickery text values only ~once per second so they read steady.
+  if(now-lastStat>=HUD_MS){
+    lastStat=now;
+    $("fpsTxt").textContent=Math.round(fps)+" fps";
+    $("diagTxt").textContent=diagStr;
+    $("viewTxt").textContent=viewStr; $("viewTxt").style.color=viewCol;
+  }
   if(recording && have){
     const row={t:(now-sessionStart)/1000};
     for(const n in ANGLE_DEFS) row[n]= computed[n]? +computed[n].angle.toFixed(2):null;
