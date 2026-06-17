@@ -181,10 +181,13 @@ const HAND_MODEL = "https://storage.googleapis.com/mediapipe-models/hand_landmar
 const HAND_TIPS = [4,8,12,16,20];
 // Lower gates so partially-occluded joints still show.
 const VIS_REPORT = 0.5, VIS_DRAW = 0.3, STEADY_STD = 1.5, WIN = 12;
+// Displayed value only moves when the angle changes more than this (degrees),
+// so a held limb shows a constant number instead of flickering on noise.
+const DEADBAND = 1.5;
 
 // ──────────────────── One-Euro filter ─────────────────────
 class OneEuro{
-  constructor(min=1.0,beta=0.05,d=1.0){this.min=min;this.beta=beta;this.d=d;
+  constructor(min=0.4,beta=0.10,d=1.0){this.min=min;this.beta=beta;this.d=d;
     this.x=null;this.dx=0;this.t=null;this.freq=30;}
   alpha(c){const te=1/this.freq,tau=1/(2*Math.PI*c);return 1/(1+tau/te);}
   filt(x,t){
@@ -246,7 +249,7 @@ const $=id=>document.getElementById(id);
 let landmarker=null, stream=null, facing="environment", mirror=false, delegate="GPU";
 let running=false, lastT=performance.now(), fps=0, lastVideoTime=-1, lastRes=null;
 let handLandmarker=null, lastHands=null, showLabels=true, handsOn=true;
-const filters={}, history={}, rom={};
+const filters={}, history={}, rom={}, hold={};
 for(const n in ANGLE_DEFS){filters[n]=new OneEuro();history[n]=[];rom[n]=[180,0];}
 let recording=false, session=[], sessionStart=0;
 let cover={scale:1,ox:0,oy:0};
@@ -394,12 +397,16 @@ function draw(res,now){
       if(raw===null) raw = angle3d(wlm[ia],wlm[ib],wlm[ic]);
       if(raw===null) continue;
       const sm=filters[name].filt(raw,now/1000);
+      // Deadband hold: keep the shown value fixed until it moves > DEADBAND°.
+      let hv=hold[name];
+      if(hv===undefined || Math.abs(sm-hv)>DEADBAND) hv=sm;
+      hold[name]=hv;
       const h=history[name]; h.push(sm); if(h.length>WIN)h.shift();
       const steady=h.length>=4 && std(h)<STEADY_STD;
       if(FLEXION.has(name)){const f=clinFlex(sm);rom[name][0]=Math.min(rom[name][0],f);rom[name][1]=Math.max(rom[name][1],f);}
-      const [st,sc]=jointState(name,sm);
-      computed[name]={angle:sm,state:st,color:sc,steady};
-      drawArc(px(lm[ib]),px(lm[ia]),px(lm[ic]),sm,col);
+      const [st,sc]=jointState(name,hv);
+      computed[name]={angle:hv,state:st,color:sc,steady};
+      drawArc(px(lm[ib]),px(lm[ia]),px(lm[ic]),hv,col);
     }
   }else{
     $("viewTxt").textContent="View: —";
