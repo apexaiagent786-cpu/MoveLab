@@ -135,7 +135,7 @@ const NAMES = ["nose","left_eye_inner","left_eye","left_eye_outer","right_eye_in
 
 // Body-part names drawn ON the body next to the major joints
 const LABELS = {
-  0:"Head",
+  0:"Nose",
   11:"L.Shoulder", 12:"R.Shoulder",
   13:"L.Elbow",    14:"R.Elbow",
   15:"L.Wrist",    16:"R.Wrist",
@@ -146,7 +146,9 @@ const LABELS = {
 };
 
 const P = {L_SH:11,R_SH:12,L_HIP:23,R_HIP:24};
-const VIS_DRAW = 0.3, VIS_HI = 0.7;     // confidence gates for drawing
+// Draw gate raised so the hidden far-side joints (low visibility in a side
+// view) are NOT drawn — only the side facing the camera is shown.
+const VIS_DRAW = 0.5, VIS_LABEL = 0.6, VIS_HI = 0.75;
 
 // ──────────────────── One-Euro filter ─────────────────────
 // Smooths each landmark's position so the skeleton sits steady instead of
@@ -295,9 +297,9 @@ function draw(res,now){
       const v=sm[i].visibility; if(v<VIS_DRAW)continue;
       const [x,y]=px(sm[i].x,sm[i].y);
       ctx.beginPath();ctx.arc(x,y,v>=VIS_HI?6:4,0,7);
-      ctx.fillStyle=v>=VIS_HI?"#39ff14":v>=0.5?"#ffa500":"#ff3250";ctx.fill();
+      ctx.fillStyle=v>=VIS_HI?"#39ff14":"#ffa500";ctx.fill();
       ctx.lineWidth=1.5;ctx.strokeStyle="#0b0a14";ctx.stroke();
-      if(showLabels && LABELS[i] && v>=0.5) drawLabel(x,y,LABELS[i]);
+      if(showLabels && LABELS[i] && v>=VIS_LABEL) drawLabel(x,y,LABELS[i]);
     }
     if(recording){
       session.push({t:(now-sessionStart)/1000,
