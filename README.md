@@ -1,16 +1,21 @@
-# MoveLab — Mobile Motion & Rehab Tracker
+# MoveLab — Mobile Joint Tracker
 
-A phone web-app (PWA) that uses your **phone camera** to track full-body movement
-in 3-D, measure joint angles / range of motion (ROM), **record** every movement,
-and **visualize** it as angle-vs-time charts plus a ROM + symmetry report.
+A phone web-app (PWA) that uses your **phone camera** to track full-body
+**joints** in real time, in both **frontal and side** views, and **record** the
+joint motion for later analysis.
 
 Built for two goals:
 - **Games** — drive gameplay with real body movement.
-- **Physio rehab** — measure how far each joint moves and which muscles drive it.
+- **Physio rehab** — track how the body's joints move.
 
-It's the same goniometry engine as the desktop `knee_phase2_angle.py`
-(world-coordinate angles + One-Euro smoothing), re-implemented in JavaScript with
-MediaPipe Tasks Vision so it runs on the phone GPU.
+> **Current scope: joint tracking only.** Joint-angle / range-of-motion
+> measurement is intentionally **deferred** until tracking is validated as
+> accurate in both frontal and side views. The hand model has been removed to
+> keep tracking fast and focused. (The earlier angle engine still lives in the
+> desktop version under `desktop/`.)
+
+It uses MediaPipe Tasks Vision (Pose Landmarker, full model) on the phone GPU,
+with per-joint One-Euro smoothing so the skeleton stays steady.
 
 ---
 
@@ -52,27 +57,21 @@ Open `http://localhost:8000/mobile_app/` in Chrome/Edge on the laptop
 | **Start Camera** | loads the model + camera (first load downloads ~10 MB) |
 | **📷 Rear / 🤳 Front** | switch cameras — use **Rear** to film a patient, **Front** for yourself |
 | **🔄 Flip** | mirror the image |
-| **⏺ Record / ⏹ Stop** | capture a session; stopping opens the Report |
-| **📊 Report** | ROM table, L/R symmetry, and an angle-vs-time chart per joint |
-| **↺ Reset** | clear session ROM (e.g. between patients/reps) |
-| **⬇ CSV / ⬇ JSON** | save the recording to the phone's Downloads |
+| **🏷 Labels** | show/hide the joint name on each landmark |
+| **⏺ Record / ⏹ Stop** | capture joint motion; stopping opens the export panel |
+| **↺ Reset** | clear the current recording |
+| **⬇ CSV / ⬇ JSON** | save the recorded joint motion to the phone's Downloads |
 
-- A **green ●** next to a joint = the reading is *steady* (safe to trust/record).
+- Joint dot colour = tracking confidence: **green** > 70%, **orange** 50–70%,
+  **red** < 50% (e.g. the far-side limb in a side view).
+- The top bar shows **View** (FRONTAL / SIDE / ANGLED), **fps**, and a chip with
+  the delegate (GPU/CPU) and how many of 33 joints are currently tracked.
 - Stand **2–3 m** back so your whole body is in frame; good light helps a lot.
 
 ## What gets recorded
-- **CSV**: `time_s`, and for every joint the raw 3-D angle + clinical flexion.
-- **JSON**: same per-frame samples plus a per-joint ROM summary (min/max flexion).
-- **Report charts**: flexion (or angle) vs time for each tracked joint, drawn in-app.
+- **CSV**: `time_s`, then for all 33 joints the `x, y, z, visibility` values.
+- **JSON**: landmark names + every per-frame sample of all 33 joint positions.
 
-## Tracked joints & prime movers (rehab framing)
-Knee (hamstrings/quads), Hip (iliopsoas/glutes), Elbow (biceps/triceps),
-Shoulder (deltoid/pec), Ankle (gastrocnemius/tib. ant.).
-
-> MediaPipe tracks **joints**, not muscles directly. Each joint angle reflects the
-> action of its prime-mover muscle group — that mapping is shown in the report.
-
-## Accuracy note
-World-landmark angles are good for tracking and screening but are **not a
-certified goniometer** — expect a few degrees of error. Use as a rehab/training
-aid, not a calibrated diagnostic device.
+## Coming next
+Joint-angle / range-of-motion measurement, once tracking is confirmed accurate
+in both frontal and side views — then games and rehab modes on top.

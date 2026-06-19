@@ -7,12 +7,12 @@
 <meta name="apple-mobile-web-app-capable" content="yes" />
 <meta name="mobile-web-app-capable" content="yes" />
 <link rel="manifest" href="manifest.json" />
-<title>MoveLab — Motion & Rehab Tracker</title>
+<title>MoveLab — Joint Tracker</title>
 <style>
   :root{
     --bg:#0b0a14; --panel:rgba(18,14,32,.82); --line:#2a2440;
     --txt:#eef0ff; --muted:#9aa0c0; --cyan:#00dcff; --green:#39ff14;
-    --lime:#00ff80; --orange:#ffa500; --red:#ff3250; --purple:#dc32c8;
+    --orange:#ffa500; --red:#ff3250; --purple:#dc32c8;
   }
   *{box-sizing:border-box;-webkit-tap-highlight-color:transparent}
   html,body{margin:0;height:100%;background:var(--bg);color:var(--txt);
@@ -31,21 +31,13 @@
   #recDot{background:var(--red);animation:blink 1s infinite;display:none}
   @keyframes blink{50%{opacity:.2}}
 
-  #angles{position:fixed;top:54px;right:8px;width:168px;max-height:60vh;overflow:auto;
-    background:var(--panel);border:1px solid var(--line);border-radius:14px;
-    padding:8px;font-size:11px;z-index:4;backdrop-filter:blur(8px)}
-  #angles h3{margin:0 0 6px;font-size:11px;color:var(--cyan);letter-spacing:.5px}
-  .arow{display:flex;justify-content:space-between;padding:2px 0;border-bottom:1px solid #ffffff10}
-  .arow b{font-weight:600}
-  .steady{color:var(--green)}
-
   #controls{position:fixed;left:0;right:0;bottom:0;z-index:6;
     padding:10px 10px max(10px,env(safe-area-inset-bottom));
     display:flex;gap:8px;justify-content:center;flex-wrap:wrap;
     background:linear-gradient(transparent,#000c)}
   button{background:var(--panel);color:var(--txt);border:1px solid var(--line);
-    border-radius:14px;padding:11px 13px;font-size:13px;font-weight:600;
-    display:flex;gap:6px;align-items:center;min-width:62px;justify-content:center}
+    border-radius:14px;padding:11px 14px;font-size:13px;font-weight:600;
+    display:flex;gap:6px;align-items:center;min-width:64px;justify-content:center}
   button:active{transform:scale(.95)}
   button.primary{background:var(--cyan);color:#001018;border-color:transparent}
   button.rec{background:var(--red);color:#fff;border-color:transparent}
@@ -67,16 +59,9 @@
     flex-direction:column;padding:max(14px,env(safe-area-inset-top)) 14px 14px}
   #report header{display:flex;justify-content:space-between;align-items:center;margin-bottom:10px}
   #report h2{margin:0;font-size:18px}
-  #reportBody{overflow:auto;flex:1}
-  .card{background:var(--panel);border:1px solid var(--line);border-radius:14px;
-    padding:12px;margin-bottom:12px}
-  .card h4{margin:0 0 4px;font-size:14px;color:var(--cyan)}
-  .card .sub{color:var(--muted);font-size:11px;margin-bottom:8px}
-  table{width:100%;border-collapse:collapse;font-size:12px}
-  td,th{text-align:left;padding:4px 6px;border-bottom:1px solid #ffffff12}
-  th{color:var(--muted);font-weight:600}
-  canvas.chart{width:100%;height:130px;display:block}
-  .pill{display:inline-block;padding:2px 8px;border-radius:10px;font-size:11px;font-weight:600}
+  .card{background:var(--panel);border:1px solid var(--line);border-radius:14px;padding:14px;margin-bottom:12px}
+  .card h4{margin:0 0 6px;font-size:14px;color:var(--cyan)}
+  .card p{margin:4px 0;font-size:13px;color:var(--muted)}
   .toast{position:fixed;bottom:80px;left:50%;transform:translateX(-50%);z-index:40;
     background:#000d;border:1px solid var(--line);border-radius:20px;padding:8px 16px;
     font-size:13px;opacity:0;transition:opacity .3s;text-align:center;max-width:90vw}
@@ -93,36 +78,33 @@
   <div class="chip"><span class="dot" id="poseDot" style="background:var(--red)"></span><span id="poseTxt">No pose</span></div>
   <div class="chip"><span id="viewTxt">View: —</span></div>
   <div class="chip"><span id="fpsTxt">— fps</span></div>
-  <div class="chip" id="diagChip"><span id="diagTxt">—</span></div>
+  <div class="chip"><span id="diagTxt">—</span></div>
   <div class="chip"><span class="dot" id="recDot"></span><span id="recTxt" style="display:none">REC</span></div>
 </div>
-
-<div id="angles"><h3>JOINT ANGLES (flex°)</h3><div id="angleRows"></div></div>
 
 <div id="controls">
   <button id="btnFlip">🔄 Flip</button>
   <button id="btnLabels" class="primary">🏷 Labels</button>
-  <button id="btnHands" class="primary">✋ Hands</button>
   <button id="btnCam">📷 Rear</button>
   <button id="btnRec" class="rec">⏺ Record</button>
-  <button id="btnReport" disabled>📊 Report</button>
   <button id="btnReset">↺ Reset</button>
 </div>
 
 <div id="splash">
   <h1>MoveLab</h1>
-  <p>Full-body motion capture for games &amp; physio rehab. Tracks your joints in
-     3-D, measures range of motion, and records every movement for review.</p>
+  <p>Full-body <b>joint tracking</b> for games &amp; physio rehab.
+     Works in frontal and side views. Joint-angle measurement comes next,
+     once tracking is solid.</p>
   <button id="btnStart" class="primary big">▶ Start Camera</button>
   <div class="spinner" id="spin"></div>
   <div id="loadmsg"></div>
-  <p style="font-size:12px">Tip: stand 2–3 m back so your <b>whole body</b> is in frame.
+  <p style="font-size:12px">Stand 2–3 m back so your <b>whole body</b> is in frame.
      Allow the camera permission when asked.</p>
 </div>
 
 <div id="report">
   <header>
-    <h2>Session Report</h2>
+    <h2>Recorded Session</h2>
     <div style="display:flex;gap:8px">
       <button id="btnCsv">⬇ CSV</button>
       <button id="btnJson">⬇ JSON</button>
@@ -135,28 +117,23 @@
 <div class="toast" id="toast"></div>
 
 <script type="module">
-import { FilesetResolver, PoseLandmarker, HandLandmarker }
+import { FilesetResolver, PoseLandmarker }
   from "https://cdn.jsdelivr.net/npm/@mediapipe/tasks-vision@0.10.12";
 
 // ───────────────────────── Config ─────────────────────────
-const P = {
-  NOSE:0, L_SH:11, R_SH:12, L_EL:13, R_EL:14, L_WR:15, R_WR:16,
-  L_HIP:23, R_HIP:24, L_KN:25, R_KN:26, L_AN:27, R_AN:28, L_FT:31, R_FT:32
-};
-const ANGLE_DEFS = {
-  "L.Knee":[P.L_HIP,P.L_KN,P.L_AN,"#39ff14"],
-  "R.Knee":[P.R_HIP,P.R_KN,P.R_AN,"#00ff80"],
-  "L.Hip":[P.L_SH,P.L_HIP,P.L_KN,"#ffa500"],
-  "R.Hip":[P.R_SH,P.R_HIP,P.R_KN,"#ffd000"],
-  "L.Elbow":[P.L_SH,P.L_EL,P.L_WR,"#dc32c8"],
-  "R.Elbow":[P.R_SH,P.R_EL,P.R_WR,"#ff6ad5"],
-  "L.Shoulder":[P.L_EL,P.L_SH,P.L_HIP,"#3296ff"],
-  "R.Shoulder":[P.R_EL,P.R_SH,P.R_HIP,"#64c8ff"],
-  "L.Ankle":[P.L_KN,P.L_AN,P.L_FT,"#00dcff"],
-  "R.Ankle":[P.R_KN,P.R_AN,P.R_FT,"#00dcff"],
-};
-const FLEXION = new Set(["L.Knee","R.Knee","L.Hip","R.Hip","L.Elbow","R.Elbow"]);
-// Body-part name shown ON the body next to each major landmark.
+const CONNECTIONS = PoseLandmarker.POSE_CONNECTIONS;
+const POSE_MODEL  = "https://storage.googleapis.com/mediapipe-models/pose_landmarker/pose_landmarker_full/float16/1/pose_landmarker_full.task";
+const WASM        = "https://cdn.jsdelivr.net/npm/@mediapipe/tasks-vision@0.10.12/wasm";
+
+// 33 BlazePose landmark names (used for CSV/JSON export)
+const NAMES = ["nose","left_eye_inner","left_eye","left_eye_outer","right_eye_inner",
+ "right_eye","right_eye_outer","left_ear","right_ear","mouth_left","mouth_right",
+ "left_shoulder","right_shoulder","left_elbow","right_elbow","left_wrist","right_wrist",
+ "left_pinky","right_pinky","left_index","right_index","left_thumb","right_thumb",
+ "left_hip","right_hip","left_knee","right_knee","left_ankle","right_ankle",
+ "left_heel","right_heel","left_foot_index","right_foot_index"];
+
+// Body-part names drawn ON the body next to the major joints
 const LABELS = {
   0:"Head",
   11:"L.Shoulder", 12:"R.Shoulder",
@@ -167,27 +144,15 @@ const LABELS = {
   27:"L.Ankle",    28:"R.Ankle",
   31:"L.Foot",     32:"R.Foot"
 };
-const MUSCLES = {
-  "Knee":"Hamstrings / Quadriceps", "Hip":"Iliopsoas / Glutes",
-  "Elbow":"Biceps / Triceps", "Shoulder":"Deltoid / Pec",
-  "Ankle":"Gastrocnemius / Tib. ant."
-};
-const NORMAL_FLEX = {Knee:135, Hip:120, Elbow:145};
-const SYMM = [["L.Knee","R.Knee"],["L.Hip","R.Hip"],["L.Elbow","R.Elbow"],
-              ["L.Shoulder","R.Shoulder"],["L.Ankle","R.Ankle"]];
-const CONNECTIONS = PoseLandmarker.POSE_CONNECTIONS;
-const HAND_CONNECTIONS = HandLandmarker.HAND_CONNECTIONS;
-const HAND_MODEL = "https://storage.googleapis.com/mediapipe-models/hand_landmarker/hand_landmarker/float16/1/hand_landmarker.task";
-const HAND_TIPS = [4,8,12,16,20];
-// Lower gates so partially-occluded joints still show.
-const VIS_REPORT = 0.5, VIS_DRAW = 0.3, STEADY_STD = 1.5, WIN = 12;
-// Displayed value only moves when the angle changes more than this (degrees),
-// so a held limb shows a constant number instead of flickering on noise.
-const DEADBAND = 2.0;
+
+const P = {L_SH:11,R_SH:12,L_HIP:23,R_HIP:24};
+const VIS_DRAW = 0.3, VIS_HI = 0.7;     // confidence gates for drawing
 
 // ──────────────────── One-Euro filter ─────────────────────
+// Smooths each landmark's position so the skeleton sits steady instead of
+// shaking frame-to-frame, while staying responsive when you actually move.
 class OneEuro{
-  constructor(min=0.4,beta=0.10,d=1.0){this.min=min;this.beta=beta;this.d=d;
+  constructor(min=1.2,beta=0.25,d=1.0){this.min=min;this.beta=beta;this.d=d;
     this.x=null;this.dx=0;this.t=null;this.freq=30;}
   alpha(c){const te=1/this.freq,tau=1/(2*Math.PI*c);return 1/(1+tau/te);}
   filt(x,t){
@@ -200,36 +165,9 @@ class OneEuro{
   }
 }
 
-// ───────────────────────── Math ───────────────────────────
-function angle3d(a,b,c){
-  const ba=[a.x-b.x,a.y-b.y,a.z-b.z], bc=[c.x-b.x,c.y-b.y,c.z-b.z];
-  const n1=Math.hypot(...ba), n2=Math.hypot(...bc);
-  if(n1<1e-6||n2<1e-6)return null;
-  const d=(ba[0]*bc[0]+ba[1]*bc[1]+ba[2]*bc[2])/(n1*n2);
-  return Math.acos(Math.max(-1,Math.min(1,d)))*180/Math.PI;
-}
-// 2-D image-plane angle (aspect-corrected). In a SIDE view the limb segments
-// lie parallel to the camera, so this projected angle is more accurate than
-// the world-coordinate angle whose depth (z) axis is the least reliable.
-function angle2d(a,b,c,aspect){
-  const ax=a.x*aspect, bx=b.x*aspect, cx=c.x*aspect;
-  const ba=[ax-bx,a.y-b.y], bc=[cx-bx,c.y-b.y];
-  const n1=Math.hypot(ba[0],ba[1]), n2=Math.hypot(bc[0],bc[1]);
-  if(n1<1e-6||n2<1e-6)return null;
-  const d=(ba[0]*bc[0]+ba[1]*bc[1])/(n1*n2);
-  return Math.acos(Math.max(-1,Math.min(1,d)))*180/Math.PI;
-}
-const clinFlex = raw => Math.max(0,180-raw);
-function jointState(name,raw){
-  if(!FLEXION.has(name))return [Math.round(raw)+"°","#00dcff"];
-  const f=clinFlex(raw);
-  if(f<10)return["EXTENDED","#39ff14"];
-  if(f<35)return["SLIGHT","#00ff80"];
-  if(f<75)return["MODERATE","#00dcff"];
-  if(f<115)return["DEEP","#ffa500"];
-  return["MAX","#ff3250"];
-}
 function vis(p){ return (p && p.visibility!=null) ? p.visibility : 1; }
+
+// View detection from shoulder-vs-hip width — tells frontal / side / angled.
 function detectView(lm){
   const ls=lm[P.L_SH],rs=lm[P.R_SH];
   if(vis(ls)<.4||vis(rs)<.4)return["—","#9aa0c0"];
@@ -237,8 +175,8 @@ function detectView(lm){
   const lh=lm[P.L_HIP],rh=lm[P.R_HIP];
   const hdx=(vis(lh)>.3&&vis(rh)>.3)?Math.abs(rh.x-lh.x):.18;
   const r=sdx/Math.max(hdx,.04);
-  if(r<.25)return["SIDE","#ffa500"];
-  if(r>.8)return["FRONTAL","#39ff14"];
+  if(r<.30)return["SIDE","#ffa500"];
+  if(r>.80)return["FRONTAL","#39ff14"];
   return["ANGLED","#00dcff"];
 }
 
@@ -248,48 +186,33 @@ const video=document.getElementById("video"),
 const $=id=>document.getElementById(id);
 let landmarker=null, stream=null, facing="environment", mirror=false, delegate="GPU";
 let running=false, lastT=performance.now(), fps=0, lastVideoTime=-1, lastRes=null;
-let handLandmarker=null, lastHands=null, showLabels=true, handsOn=true;
-// Throttled HUD text (so fps / counts don't flicker every frame when still)
+let showLabels=true;
+let cover={scale:1,ox:0,oy:0};
 let lastStat=0, diagStr="—", viewStr="View: —", viewCol="#9aa0c0";
 const HUD_MS=1000;
-const filters={}, history={}, rom={}, hold={};
-for(const n in ANGLE_DEFS){filters[n]=new OneEuro();history[n]=[];rom[n]=[180,0];}
+// per-landmark position smoothers (x,y)
+const fX=[], fY=[];
+for(let i=0;i<33;i++){fX[i]=new OneEuro();fY[i]=new OneEuro();}
+// recording of joint positions
 let recording=false, session=[], sessionStart=0;
-let cover={scale:1,ox:0,oy:0};
 
 function toast(m){const t=$("toast");t.textContent=m;t.style.opacity=1;
   clearTimeout(t._h);t._h=setTimeout(()=>t.style.opacity=0,2200);}
 
 // ─────────────────────── Setup ────────────────────────────
 async function loadModel(){
-  $("loadmsg").textContent="Loading motion model… (first time ~10 MB)";
-  const vision=await FilesetResolver.forVisionTasks(
-    "https://cdn.jsdelivr.net/npm/@mediapipe/tasks-vision@0.10.12/wasm");
+  $("loadmsg").textContent="Loading tracking model… (first time ~10 MB)";
+  const vision=await FilesetResolver.forVisionTasks(WASM);
   const opts=(del)=>({
-    baseOptions:{
-      modelAssetPath:"https://storage.googleapis.com/mediapipe-models/pose_landmarker/pose_landmarker_full/float16/1/pose_landmarker_full.task",
-      delegate:del
-    },
+    baseOptions:{modelAssetPath:POSE_MODEL, delegate:del},
     runningMode:"VIDEO", numPoses:1,
     minPoseDetectionConfidence:.5, minPosePresenceConfidence:.5, minTrackingConfidence:.5
   });
-  try{
-    landmarker=await PoseLandmarker.createFromOptions(vision,opts("GPU"));
-    delegate="GPU";
-  }catch(e){
+  try{ landmarker=await PoseLandmarker.createFromOptions(vision,opts("GPU")); delegate="GPU"; }
+  catch(e){
     $("loadmsg").textContent="GPU unavailable, using CPU…";
-    landmarker=await PoseLandmarker.createFromOptions(vision,opts("CPU"));
-    delegate="CPU";
+    landmarker=await PoseLandmarker.createFromOptions(vision,opts("CPU")); delegate="CPU";
   }
-  // Hand detector (so we can recognise hands + which is left / right)
-  $("loadmsg").textContent="Loading hand model…";
-  try{
-    handLandmarker=await HandLandmarker.createFromOptions(vision,{
-      baseOptions:{modelAssetPath:HAND_MODEL, delegate},
-      runningMode:"VIDEO", numHands:2,
-      minHandDetectionConfidence:.5, minHandPresenceConfidence:.5, minTrackingConfidence:.5
-    });
-  }catch(e){ handLandmarker=null; }
 }
 
 function applyMirror(){ video.style.transform = mirror ? "scaleX(-1)" : "none"; }
@@ -299,25 +222,17 @@ async function startCamera(){
   mirror = (facing==="user"); applyMirror();
   let s;
   try{
-    s=await navigator.mediaDevices.getUserMedia({
-      audio:false,
-      video:{facingMode:{ideal:facing},width:{ideal:1280},height:{ideal:720}}
-    });
-  }catch(e){
-    // retry without facing constraint (some phones reject exact facingMode)
-    s=await navigator.mediaDevices.getUserMedia({audio:false,video:true});
-  }
+    s=await navigator.mediaDevices.getUserMedia({audio:false,
+      video:{facingMode:{ideal:facing},width:{ideal:1280},height:{ideal:720}}});
+  }catch(e){ s=await navigator.mediaDevices.getUserMedia({audio:false,video:true}); }
   stream=s; video.srcObject=s;
-  await new Promise(res=>{ if(video.readyState>=1)res();
-    else video.onloadedmetadata=()=>res(); });
+  await new Promise(r=>{ if(video.readyState>=1)r(); else video.onloadedmetadata=()=>r(); });
   await video.play();
   resize();
 }
 
 function resize(){
-  canvas.width  = canvas.clientWidth;
-  canvas.height = canvas.clientHeight;
-  computeCover();
+  canvas.width=canvas.clientWidth; canvas.height=canvas.clientHeight; computeCover();
 }
 function computeCover(){
   const vw=video.videoWidth, vh=video.videoHeight;
@@ -328,12 +243,11 @@ function computeCover(){
 window.addEventListener("resize",resize);
 window.addEventListener("orientationchange",()=>setTimeout(resize,300));
 
-// normalized landmark -> overlay pixel, matching the cover-cropped + mirrored video
-function px(lm){
+// normalized (sx,sy) -> overlay pixel, matching cover-cropped + mirrored video
+function px(sx,sy){
   if(!cover.vw)computeCover();
-  let nx = mirror ? (1-lm.x) : lm.x;
-  return [cover.ox + nx*cover.vw*cover.scale,
-          cover.oy + lm.y*cover.vh*cover.scale];
+  const nx = mirror ? (1-sx) : sx;
+  return [cover.ox + nx*cover.vw*cover.scale, cover.oy + sy*cover.vh*cover.scale];
 }
 
 // ─────────────────────── Render loop ──────────────────────
@@ -344,9 +258,7 @@ function loop(){
     if(!canvas.width || canvas.width!==canvas.clientWidth) resize();
     if(video.currentTime!==lastVideoTime){
       lastVideoTime=video.currentTime;
-      try{ lastRes=landmarker.detectForVideo(video,now); }
-      catch(e){ $("diagTxt").textContent="err:"+(e.message||e).slice(0,18); }
-      if(handLandmarker && handsOn){ try{ lastHands=handLandmarker.detectForVideo(video,now); }catch(e){} }
+      try{ lastRes=landmarker.detectForVideo(video,now); }catch(e){}
     }
     fps=fps*0.9 + (1000/Math.max(now-lastT,1))*0.1; lastT=now;
     draw(lastRes,now);
@@ -360,159 +272,66 @@ function draw(res,now){
   $("poseDot").style.background = have ? "var(--green)":"var(--red)";
   $("poseTxt").textContent = have ? "Pose OK":"No pose";
 
-  const computed={};
   if(have){
-    const lm=res.landmarks[0];
-    const wlm=(res.worldLandmarks&&res.worldLandmarks[0])||lm;
-    const nVis=lm.filter(p=>vis(p)>=VIS_DRAW).length;
-    const nH=(lastHands&&lastHands.landmarks)?lastHands.landmarks.length:0;
-    diagStr=delegate+" · "+nVis+"/33 · "+nH+"H";
-    const [vl,vc]=detectView(lm);
-    viewStr="View: "+vl; viewCol=vc;
-    const aspect=(video.videoWidth/video.videoHeight)||(16/9);
-    const isSide=(vl==="SIDE");
+    const raw=res.landmarks[0];
+    // smooth positions for a steady skeleton
+    const t=now/1000;
+    const sm=raw.map((p,i)=>({x:fX[i].filt(p.x,t), y:fY[i].filt(p.y,t),
+                              z:p.z, visibility:vis(p)}));
+    const nVis=sm.filter(p=>p.visibility>=VIS_DRAW).length;
+    diagStr=delegate+" · "+nVis+"/33 joints";
+    const [vl,vc]=detectView(sm); viewStr="View: "+vl; viewCol=vc;
 
-    // skeleton
+    // skeleton bones
     ctx.lineWidth=4; ctx.lineCap="round"; ctx.strokeStyle="#00dcffdd";
     for(const c of CONNECTIONS){
-      const a=lm[c.start],b=lm[c.end];
-      if(vis(a)<VIS_DRAW||vis(b)<VIS_DRAW)continue;
-      const pa=px(a),pb=px(b);
+      const a=sm[c.start],b=sm[c.end];
+      if(a.visibility<VIS_DRAW||b.visibility<VIS_DRAW)continue;
+      const pa=px(a.x,a.y),pb=px(b.x,b.y);
       ctx.beginPath();ctx.moveTo(pa[0],pa[1]);ctx.lineTo(pb[0],pb[1]);ctx.stroke();
     }
-    // joints + body-part names
-    for(let i=0;i<lm.length;i++){
-      const v=vis(lm[i]); if(v<VIS_DRAW)continue;
-      const [x,y]=px(lm[i]);
-      ctx.beginPath();ctx.arc(x,y,v>0.7?6:4,0,7);
-      ctx.fillStyle=v>0.7?"#39ff14":v>0.5?"#ffa500":"#ff3250";ctx.fill();
+    // joints + labels
+    for(let i=0;i<sm.length;i++){
+      const v=sm[i].visibility; if(v<VIS_DRAW)continue;
+      const [x,y]=px(sm[i].x,sm[i].y);
+      ctx.beginPath();ctx.arc(x,y,v>=VIS_HI?6:4,0,7);
+      ctx.fillStyle=v>=VIS_HI?"#39ff14":v>=0.5?"#ffa500":"#ff3250";ctx.fill();
       ctx.lineWidth=1.5;ctx.strokeStyle="#0b0a14";ctx.stroke();
       if(showLabels && LABELS[i] && v>=0.5) drawLabel(x,y,LABELS[i]);
     }
-    // angles (world coords)
-    for(const name in ANGLE_DEFS){
-      const [ia,ib,ic,col]=ANGLE_DEFS[name];
-      if(Math.min(vis(lm[ia]),vis(lm[ib]),vis(lm[ic]))<VIS_REPORT)continue;
-      // SIDE view → 2-D image angle (more accurate); else → 3-D world angle.
-      let raw = isSide ? angle2d(lm[ia],lm[ib],lm[ic],aspect)
-                       : angle3d(wlm[ia],wlm[ib],wlm[ic]);
-      if(raw===null) raw = angle3d(wlm[ia],wlm[ib],wlm[ic]);
-      if(raw===null) continue;
-      const sm=filters[name].filt(raw,now/1000);
-      // Deadband hold: keep the shown value fixed until it moves > DEADBAND°.
-      let hv=hold[name];
-      if(hv===undefined || Math.abs(sm-hv)>DEADBAND) hv=sm;
-      hold[name]=hv;
-      const h=history[name]; h.push(sm); if(h.length>WIN)h.shift();
-      const steady=h.length>=4 && std(h)<STEADY_STD;
-      if(FLEXION.has(name)){const f=clinFlex(sm);rom[name][0]=Math.min(rom[name][0],f);rom[name][1]=Math.max(rom[name][1],f);}
-      const [st,sc]=jointState(name,hv);
-      computed[name]={angle:hv,state:st,color:sc,steady};
-      drawArc(px(lm[ib]),px(lm[ia]),px(lm[ic]),hv,col);
+    if(recording){
+      session.push({t:(now-sessionStart)/1000,
+        pts:sm.map(p=>[+p.x.toFixed(4),+p.y.toFixed(4),+p.z.toFixed(4),+p.visibility.toFixed(3)])});
     }
   }else{
-    const nH=(lastHands&&lastHands.landmarks)?lastHands.landmarks.length:0;
-    viewStr="View: —"; viewCol="#9aa0c0";
-    diagStr=delegate+" · 0/33 · "+nH+"H";
+    viewStr="View: —"; viewCol="#9aa0c0"; diagStr=delegate+" · 0/33 joints";
+    drawCenter("No person detected  —  step into frame","#ffa500");
   }
-  // Draw real hands (skeleton + LEFT/RIGHT HAND label + finger count)
-  drawHands(lastHands, have ? res.landmarks[0] : null);
-  updatePanel(computed);
-  // Flush flickery text values only ~once per second so they read steady.
+
+  // throttle flickery text so it reads steady when you hold still
   if(now-lastStat>=HUD_MS){
     lastStat=now;
     $("fpsTxt").textContent=Math.round(fps)+" fps";
     $("diagTxt").textContent=diagStr;
     $("viewTxt").textContent=viewStr; $("viewTxt").style.color=viewCol;
   }
-  if(recording && have){
-    const row={t:(now-sessionStart)/1000};
-    for(const n in ANGLE_DEFS) row[n]= computed[n]? +computed[n].angle.toFixed(2):null;
-    session.push(row);
-  }
 }
 
-function drawLabel(x,y,text,col="#ffffff"){
+function drawLabel(x,y,text){
   ctx.font="bold 12px sans-serif";ctx.textAlign="left";ctx.textBaseline="middle";
   const w=ctx.measureText(text).width;
   let lx=x+9, ly=y-2;
-  if(lx+w+8>canvas.width) lx=x-w-17;            // flip side if off right edge
+  if(lx+w+8>canvas.width) lx=x-w-17;
   ly=Math.max(11,Math.min(canvas.height-11,ly));
   ctx.fillStyle="#000b";ctx.fillRect(lx-3,ly-9,w+8,18);
-  ctx.fillStyle=col;ctx.fillText(text,lx+1,ly);
+  ctx.fillStyle="#ffffff";ctx.fillText(text,lx+1,ly);
 }
-
-// Which physical hand? Match the hand's wrist to the nearest pose wrist
-// (pose knows anatomical L/R), so it stays consistent with the body labels.
-function handSide(res,idx,hand,poseLm){
-  if(poseLm){
-    const w=hand[0];
-    const dl=Math.hypot(w.x-poseLm[15].x, w.y-poseLm[15].y);
-    const dr=Math.hypot(w.x-poseLm[16].x, w.y-poseLm[16].y);
-    if(Math.min(dl,dr)<0.3) return dl<dr ? "Left" : "Right";
-  }
-  // fallback: model handedness (assumes mirrored selfie input → swap)
-  const cat=res.handedness && res.handedness[idx] && res.handedness[idx][0]
-            && res.handedness[idx][0].categoryName;
-  if(cat) return cat==="Left" ? "Right" : "Left";
-  return "Hand";
+function drawCenter(text,col){
+  ctx.font="bold 16px sans-serif";ctx.textAlign="center";ctx.textBaseline="middle";
+  const w=ctx.measureText(text).width;
+  ctx.fillStyle="#000a";ctx.fillRect(canvas.width/2-w/2-10,canvas.height/2-16,w+20,32);
+  ctx.fillStyle=col;ctx.fillText(text,canvas.width/2,canvas.height/2);
 }
-
-function countFingers(hand,side){
-  let c=0;
-  const tips=[8,12,16,20], pips=[6,10,14,18];
-  for(let k=0;k<4;k++) if(hand[tips[k]].y < hand[pips[k]].y) c++;   // finger up
-  const ext = side==="Right" ? (hand[4].x < hand[3].x) : (hand[4].x > hand[3].x);
-  if(ext) c++;                                                      // thumb
-  return c;
-}
-
-function drawHands(res,poseLm){
-  if(!res || !res.landmarks || res.landmarks.length===0) return;
-  for(let idx=0; idx<res.landmarks.length; idx++){
-    const hand=res.landmarks[idx];
-    const side=handSide(res,idx,hand,poseLm);
-    const col = side==="Right" ? "#dc32c8" : side==="Left" ? "#3296ff" : "#00dcff";
-    ctx.strokeStyle=col; ctx.lineWidth=3; ctx.lineCap="round";
-    for(const c of HAND_CONNECTIONS){
-      const a=px(hand[c.start]), b=px(hand[c.end]);
-      ctx.beginPath();ctx.moveTo(a[0],a[1]);ctx.lineTo(b[0],b[1]);ctx.stroke();
-    }
-    for(let i=0;i<hand.length;i++){
-      const [x,y]=px(hand[i]); const tip=HAND_TIPS.includes(i);
-      ctx.beginPath();ctx.arc(x,y,tip?5:3,0,7);
-      ctx.fillStyle=tip?col:"#ffffff";ctx.fill();
-    }
-    const [wx,wy]=px(hand[0]);
-    const name = side==="Hand" ? "HAND" : side.toUpperCase()+" HAND";
-    drawLabel(wx,wy, name+" · "+countFingers(hand,side)+" fingers", col);
-  }
-}
-
-function drawArc(v,a,c,deg,col){
-  const a1=Math.atan2(a[1]-v[1],a[0]-v[0]), a2=Math.atan2(c[1]-v[1],c[0]-v[0]);
-  let sweep=(a2-a1); while(sweep<-Math.PI)sweep+=2*Math.PI; while(sweep>Math.PI)sweep-=2*Math.PI;
-  ctx.beginPath();ctx.strokeStyle=col;ctx.lineWidth=3;
-  ctx.arc(v[0],v[1],32,Math.min(a1,a1+sweep),Math.max(a1,a1+sweep));ctx.stroke();
-  const mid=a1+sweep/2, tx=v[0]+56*Math.cos(mid), ty=v[1]+56*Math.sin(mid);
-  ctx.font="bold 18px sans-serif";ctx.textAlign="center";ctx.textBaseline="middle";
-  ctx.fillStyle="#000b";ctx.fillRect(tx-22,ty-12,44,24);
-  ctx.fillStyle=col;ctx.fillText(Math.round(deg)+"°",tx,ty);
-}
-
-function updatePanel(c){
-  let html="";
-  for(const name in ANGLE_DEFS){
-    const e=c[name];
-    if(!e){html+=`<div class="arow"><span>${name}</span><span style="color:var(--muted)">—</span></div>`;continue;}
-    const val=FLEXION.has(name)?Math.round(clinFlex(e.angle)):Math.round(e.angle);
-    html+=`<div class="arow"><span>${e.steady?'<span class="steady">●</span> ':''}${name}</span>`
-        +`<b style="color:${e.color}">${val}°</b></div>`;
-  }
-  $("angleRows").innerHTML=html;
-}
-function std(a){const m=a.reduce((s,x)=>s+x,0)/a.length;
-  return Math.sqrt(a.reduce((s,x)=>s+(x-m)*(x-m),0)/a.length);}
 
 // ─────────────────── Recording / export ───────────────────
 function setRec(on){
@@ -521,88 +340,40 @@ function setRec(on){
   $("recTxt").style.display=on?"inline":"none";
   $("btnRec").innerHTML=on?"⏹ Stop":"⏺ Record";
   $("btnRec").classList.toggle("primary",on);
-  if(on){session=[];sessionStart=performance.now();toast("Recording…");}
-  else{toast(`Saved ${session.length} frames`);$("btnReport").disabled=session.length===0;openReport();}
+  if(on){session=[];sessionStart=performance.now();toast("Recording joint motion…");}
+  else{ openReport(); }
+}
+function openReport(){
+  const dur = session.length ? session[session.length-1].t : 0;
+  $("reportBody").innerHTML = session.length
+    ? `<div class="card"><h4>Joint motion captured</h4>
+        <p>Frames: <b style="color:var(--txt)">${session.length}</b></p>
+        <p>Duration: <b style="color:var(--txt)">${dur.toFixed(1)} s</b></p>
+        <p>Each frame stores all 33 joint positions (x, y, z, visibility).</p>
+        <p>Export as CSV or JSON above for analysis. Joint-angle measurement
+           will be added once tracking is validated in both views.</p></div>`
+    : `<div class="card"><p>No frames recorded.</p></div>`;
+  $("report").style.display="flex";
 }
 function exportCSV(){
-  const cols=Object.keys(ANGLE_DEFS);
-  let head=["time_s"]; cols.forEach(n=>{head.push(n+"_raw");if(FLEXION.has(n))head.push(n+"_flex");});
+  let head=["time_s"]; NAMES.forEach(n=>head.push(n+"_x",n+"_y",n+"_z",n+"_v"));
   const lines=[head.join(",")];
-  for(const r of session){
-    const row=[r.t.toFixed(3)];
-    for(const n of cols){const v=r[n];row.push(v==null?"":v.toFixed(2));
-      if(FLEXION.has(n))row.push(v==null?"":clinFlex(v).toFixed(2));}
+  for(const f of session){
+    const row=[f.t.toFixed(3)];
+    for(const p of f.pts) row.push(p[0],p[1],p[2],p[3]);
     lines.push(row.join(","));
   }
-  download("movelab_"+Date.now()+".csv","text/csv",lines.join("\n"));
+  download("movelab_joints_"+Date.now()+".csv","text/csv",lines.join("\n"));
 }
 function exportJSON(){
-  const romOut={}; for(const n in rom)romOut[n]={minFlex:+rom[n][0].toFixed(1),maxFlex:+rom[n][1].toFixed(1)};
-  download("movelab_"+Date.now()+".json","application/json",
-    JSON.stringify({recordedAt:new Date().toISOString(),frames:session.length,
-                    rom:romOut,samples:session},null,1));
+  download("movelab_joints_"+Date.now()+".json","application/json",
+    JSON.stringify({recordedAt:new Date().toISOString(),landmarkNames:NAMES,
+                    frames:session.length, samples:session},null,1));
 }
 function download(name,type,data){
   const b=new Blob([data],{type}); const u=URL.createObjectURL(b);
   const a=document.createElement("a"); a.href=u; a.download=name; a.click();
   setTimeout(()=>URL.revokeObjectURL(u),1000); toast("Downloaded "+name);
-}
-
-// ─────────────────────── Report view ──────────────────────
-function openReport(){
-  const body=$("reportBody"); body.innerHTML="";
-  if(session.length===0){body.innerHTML="<p>No data recorded.</p>";$("report").style.display="flex";return;}
-  let t=`<div class="card"><h4>Range of Motion (this session)</h4>
-    <div class="sub">Flexion degrees per joint · prime movers</div>
-    <table><tr><th>Joint</th><th>Muscles</th><th>Min</th><th>Max</th><th>ROM</th><th></th></tr>`;
-  for(const n in rom){
-    if(!FLEXION.has(n))continue;
-    const j=n.split(".")[1], lo=rom[n][0], hi=rom[n][1], r=Math.max(0,hi-lo);
-    if(hi<=lo)continue;
-    const norm=NORMAL_FLEX[j]||180, pct=Math.round(hi/norm*100);
-    const col=pct>=85?"#39ff14":pct>=60?"#ffa500":"#ff3250";
-    t+=`<tr><td>${n}</td><td style="color:var(--muted)">${MUSCLES[j]||""}</td>
-        <td>${lo.toFixed(0)}°</td><td>${hi.toFixed(0)}°</td><td>${r.toFixed(0)}°</td>
-        <td><span class="pill" style="background:${col}22;color:${col}">${pct}% norm</span></td></tr>`;
-  }
-  t+="</table></div>";
-  t+=`<div class="card"><h4>Left / Right Symmetry</h4><div class="sub">Peak flexion difference</div><table>`;
-  for(const [l,r] of SYMM){
-    if(rom[l][1]<=rom[l][0]||rom[r][1]<=rom[r][0])continue;
-    const d=Math.abs(rom[l][1]-rom[r][1]);
-    const col=d<8?"#39ff14":d<20?"#ffa500":"#ff3250";
-    t+=`<tr><td>${l.split(".")[1]}</td><td>L ${rom[l][1].toFixed(0)}°</td>
-        <td>R ${rom[r][1].toFixed(0)}°</td><td style="color:${col}">Δ ${d.toFixed(0)}°</td></tr>`;
-  }
-  t+="</table></div>";
-  body.innerHTML=t;
-  for(const n in ANGLE_DEFS){
-    const ser=session.map(s=>({t:s.t,v:s[n]==null?null:(FLEXION.has(n)?clinFlex(s[n]):s[n])}))
-                     .filter(p=>p.v!=null);
-    if(ser.length<2)continue;
-    const card=document.createElement("div");card.className="card";
-    card.innerHTML=`<h4>${n} ${FLEXION.has(n)?"flexion":"angle"} over time</h4>
-                    <div class="sub">degrees vs seconds</div>`;
-    const cv=document.createElement("canvas");cv.className="chart";card.appendChild(cv);
-    body.appendChild(card); requestAnimationFrame(()=>lineChart(cv,ser,ANGLE_DEFS[n][3]));
-  }
-  $("report").style.display="flex";
-}
-function lineChart(cv,ser,col){
-  const dpr=window.devicePixelRatio||1;
-  cv.width=cv.clientWidth*dpr; cv.height=cv.clientHeight*dpr;
-  const g=cv.getContext("2d"); g.scale(dpr,dpr);
-  const W=cv.clientWidth,H=cv.clientHeight,pad=28;
-  const xs=ser.map(p=>p.t),ys=ser.map(p=>p.v);
-  const x0=Math.min(...xs),x1=Math.max(...xs),y0=Math.min(...ys),y1=Math.max(...ys);
-  const sx=t=>pad+(t-x0)/Math.max(x1-x0,1e-6)*(W-pad-8);
-  const sy=v=>H-pad-(v-y0)/Math.max(y1-y0,1)*(H-pad-8);
-  g.strokeStyle="#ffffff20";g.lineWidth=1;g.font="9px sans-serif";g.fillStyle="#9aa0c0";
-  for(let i=0;i<=2;i++){const v=y0+(y1-y0)*i/2,y=sy(v);
-    g.beginPath();g.moveTo(pad,y);g.lineTo(W-8,y);g.stroke();g.fillText(v.toFixed(0)+"°",2,y+3);}
-  g.fillText(x0.toFixed(1)+"s",pad,H-6);g.fillText(x1.toFixed(1)+"s",W-30,H-6);
-  g.strokeStyle=col;g.lineWidth=2;g.beginPath();
-  ser.forEach((p,i)=>{const X=sx(p.t),Y=sy(p.v);i?g.lineTo(X,Y):g.moveTo(X,Y);});g.stroke();
 }
 
 // ─────────────────────── Controls ─────────────────────────
@@ -627,14 +398,9 @@ $("btnCam").onclick=async()=>{
 $("btnFlip").onclick=()=>{mirror=!mirror;applyMirror();toast("Mirror "+(mirror?"on":"off"));};
 $("btnLabels").onclick=()=>{showLabels=!showLabels;
   $("btnLabels").classList.toggle("primary",showLabels);
-  toast("Body-part labels "+(showLabels?"on":"off"));};
-$("btnHands").onclick=()=>{handsOn=!handsOn; if(!handsOn)lastHands=null;
-  $("btnHands").classList.toggle("primary",handsOn);
-  toast("Hand tracking "+(handsOn?"on":"off — better performance"));};
+  toast("Joint labels "+(showLabels?"on":"off"));};
 $("btnRec").onclick=()=>setRec(!recording);
-$("btnReport").onclick=openReport;
-$("btnReset").onclick=()=>{for(const n in rom){rom[n]=[180,0];history[n]=[];}
-  session=[];$("btnReport").disabled=true;toast("ROM reset");};
+$("btnReset").onclick=()=>{session=[];toast("Cleared");};
 $("btnCsv").onclick=exportCSV;
 $("btnJson").onclick=exportJSON;
 $("btnClose").onclick=()=>$("report").style.display="none";
