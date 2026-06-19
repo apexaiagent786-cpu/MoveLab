@@ -146,6 +146,9 @@ const LABELS = {
 };
 
 const P = {L_SH:11,R_SH:12,L_HIP:23,R_HIP:24};
+// Left / right landmark indices (nose 0 is central → always shown)
+const LEFT_IDX  = [1,2,3,7,9,11,13,15,17,19,21,23,25,27,29,31];
+const RIGHT_IDX = [4,5,6,8,10,12,14,16,18,20,22,24,26,28,30,32];
 // Draw gate raised so the hidden far-side joints (low visibility in a side
 // view) are NOT drawn — only the side facing the camera is shown.
 const VIS_DRAW = 0.5, VIS_LABEL = 0.6, VIS_HI = 0.75;
@@ -284,9 +287,21 @@ function draw(res,now){
     diagStr=delegate+" · "+nVis+"/33 joints";
     const [vl,vc]=detectView(sm); viewStr="View: "+vl; viewCol=vc;
 
+    // In SIDE view, keep only the side facing the camera. Pick the near side
+    // by total visibility (robust) and hide every joint on the far side.
+    let hidden=null;
+    if(vl==="SIDE"){
+      let lsum=0,rsum=0;
+      for(const i of LEFT_IDX)  lsum+=sm[i].visibility;
+      for(const i of RIGHT_IDX) rsum+=sm[i].visibility;
+      hidden=new Set(lsum>=rsum ? RIGHT_IDX : LEFT_IDX);
+      viewStr="View: SIDE ("+(lsum>=rsum?"L":"R")+")";
+    }
+
     // skeleton bones
     ctx.lineWidth=4; ctx.lineCap="round"; ctx.strokeStyle="#00dcffdd";
     for(const c of CONNECTIONS){
+      if(hidden && (hidden.has(c.start)||hidden.has(c.end))) continue;
       const a=sm[c.start],b=sm[c.end];
       if(a.visibility<VIS_DRAW||b.visibility<VIS_DRAW)continue;
       const pa=px(a.x,a.y),pb=px(b.x,b.y);
@@ -294,6 +309,7 @@ function draw(res,now){
     }
     // joints + labels
     for(let i=0;i<sm.length;i++){
+      if(hidden && hidden.has(i)) continue;
       const v=sm[i].visibility; if(v<VIS_DRAW)continue;
       const [x,y]=px(sm[i].x,sm[i].y);
       ctx.beginPath();ctx.arc(x,y,v>=VIS_HI?6:4,0,7);
